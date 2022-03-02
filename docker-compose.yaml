@@ -1,0 +1,60 @@
+version: "3.8"
+services:
+    mysqldb:
+        image: mysql:8.0
+        container_name: mysqldb_xadmin
+        restart: always
+        expose:
+            - "3306"
+        ports:
+            - "3307:3306"
+        networks:
+            - x-network
+        volumes:
+            - "x_db_data:/var/lib/mysql"
+            - "./db/mysql_conf:/etc/mysql/conf.d"
+        env_file:
+            - "./conf/mysql.env"
+
+    myadmin:
+        image: phpmyadmin
+        container_name: myadmin_xadmin
+        restart: always
+        environment:
+            PMA_HOST: mysqldb
+            PWA_PORT: 3306
+            PWA_USER: root
+            PWA_PASSWORD: admin
+            UPLOAD_LIMIT: 50M
+        ports:
+            - "1002:80"
+        networks:
+            - x-network
+        depends_on:
+            - mysqldb
+
+    server:
+        build:
+            context: ./iwork_admin
+            dockerfile: ../conf/server.dockerfile
+        image: iwork_admin
+        container_name: server_xadmin
+        environment:
+            SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/xattendance?autoReconnect=true&useSSL=false&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+        restart: always
+        expose:
+            - "8087"
+        ports:
+            - "8087:8087"
+        networks:
+            - x-network
+        depends_on:
+            - mysqldb
+
+volumes:
+    x_db_data: {}
+
+networks:
+    x-network:
+        external: false
+        name: x-network
